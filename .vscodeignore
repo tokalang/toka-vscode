@@ -1,0 +1,10 @@
+.vscode/
+.vscode-test/
+.github/
+.gitignore
+docs/
+test/
+out/
+src/
+*.vsix
+package-lock.json

@@ -1,0 +1,39 @@
+name: Extension CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx --no-install vsce ls
+      - run: npm run package -- --out /tmp/toka-vscode.vsix
+      - name: Verify package contents
+        run: |
+          set -euo pipefail
+          unzip -l /tmp/toka-vscode.vsix > /tmp/toka-vscode-files.txt
+          grep -q 'extension/language-configuration.json' /tmp/toka-vscode-files.txt
+          grep -q 'extension/syntaxes/toka.tmLanguage.json' /tmp/toka-vscode-files.txt
+          grep -q 'extension/extension.js' /tmp/toka-vscode-files.txt
+          if grep -q 'node_modules/@vscode/vsce/' /tmp/toka-vscode-files.txt; then
+            echo 'VSIX unexpectedly contains the packaging tool' >&2
+            exit 1
+          fi
+          if grep -Eq 'extension/(test|docs)/|extension/package-lock.json' /tmp/toka-vscode-files.txt; then
+            echo 'VSIX unexpectedly contains development-only files' >&2
+            exit 1
+          fi
